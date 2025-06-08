@@ -3,392 +3,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>互動式CPU編譯器優化分析工具</title>
+    <title>互動式微架構效率建模瀏覽器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Tech Neutral (Slate, Zinc, Teal) -->
-    <!-- Application Structure Plan: The application uses a thematic, top-down structure. It starts with the high-level "Why" (Optimization Goals) using an interactive radar chart to show trade-offs. It then moves to the "How" (KPIs) with explanatory cards. Next is the "What" (Benchmarks) with a filterable grid for easy comparison. It concludes with the actionable "Right Way" (Best Practices) as a checklist. This structure guides users from general concepts to specific tools and methodologies, making the complex report content more digestible and exploratory than a linear document. -->
-    <!-- Visualization & Content Choices: 1. Optimization Goals: Report info on trade-offs (speed vs. size) -> Goal: Compare -> Viz: Interactive Radar Chart -> Interaction: Buttons for optimization levels (-O0, -O3, -Os) update the chart to visualize the balance of Speed, Size, Memory, Power -> Justification: Makes the abstract concept of trade-offs tangible and easy to compare -> Library: Chart.js. 2. Benchmarks: Report info on various suites (SPEC, CoreMark) -> Goal: Organize & Compare -> Viz: Filterable card grid -> Interaction: Users click filters (e.g., "Industry Standard") to narrow choices and click cards to see details -> Justification: Allows non-linear exploration based on user interest -> Library: Vanilla JS. 3. KPIs & Best Practices: Report info -> Goal: Inform/Organize -> Viz: Titled cards and interactive checklist -> Interaction: Simple hover/click to reveal info -> Justification: Breaks down dense text into digestible, scannable chunks -> Library: Vanilla JS. -->
+    <!-- Chosen Palette: Calm Tech (Slate, Sky Blue, White) -->
+    <!-- Application Structure Plan: A thematic, narrative-driven single-page application. It starts by introducing the core problem (the 'black box' between compilers and hardware). It then presents an interactive comparison of the 'Toolbox' (Traditional vs. Advanced analysis tools), highlighting their respective trade-offs (the 'trilemmas'). The centerpiece is a visual, interactive diagram of the proposed 'Integrated Framework', showing the ideal feedback loop. Finally, it provides an 'Actionable Insights' section, an interactive mapping of microarchitecture metrics to specific compiler optimizations. This structure guides the user from the high-level problem, through the available tools, to the proposed solution and its practical application, making the dense report highly digestible and user-friendly. -->
+    <!-- Visualization & Content Choices: 1. Tool Comparison: Report info on tool limitations -> Goal: Organize & Compare -> Viz: A two-column layout with filterable, clickable cards for each tool type. -> Interaction: Clicking a card reveals its pros, cons, and key use cases. This turns the report's tables into an interactive exploratory component. -> Justification: Allows users to actively compare tools based on their needs, making the trade-offs discussed in the report tangible. -> Library: Vanilla JS. 2. Integrated Framework Diagram: Report info on a comprehensive framework -> Goal: Inform, Show Relationships -> Viz: A conceptual flowchart built with styled HTML divs and borders. -> Interaction: Hovering over diagram components (e.g., 'ML Models') reveals tooltips explaining their function in the feedback loop. -> Justification: Makes the report's central, abstract thesis concrete and intuitive. -> Library: Vanilla JS. 3. Metrics-to-Action Mapping: Report's Table 3 -> Goal: Guide, Inform -> Viz: An interactive two-panel list. -> Interaction: Clicking a metric on the left highlights corresponding compiler strategies on the right and provides a contextual explanation. -> Justification: Transforms a static reference table into a practical, diagnostic tool for developers. -> Library: Vanilla JS. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
             background-color: #f8fafc; /* slate-50 */
-            color: #1e293b; /* slate-800 */
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 40vh;
-            max-height: 400px;
+            color: #0f172a; /* slate-900 */
         }
         .nav-link {
             transition: color 0.3s, border-bottom-color 0.3s;
             border-bottom: 2px solid transparent;
         }
         .nav-link:hover, .nav-link.active {
-            color: #0d9488; /* teal-600 */
-            border-bottom-color: #0d9488;
+            color: #0284c7; /* sky-600 */
+            border-bottom-color: #0284c7;
         }
-        .benchmark-card {
-            transition: transform 0.3s, box-shadow 0.3s;
+        .tool-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
         }
-        .benchmark-card:hover {
-            transform: translateY(-5px);
+        .tool-card:hover {
+            transform: translateY(-4px);
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
-        .tag {
-            cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
+        .metric-item.active {
+            background-color: #e0f2fe; /* sky-100 */
+            border-left-color: #0284c7; /* sky-600 */
         }
-        .tag.active {
-            background-color: #0d9488; /* teal-600 */
-            color: white;
+        .strategy-item.highlight {
+            background-color: #fef9c3; /* yellow-100 */
+            transform: scale(1.02);
+        }
+        .strategy-item {
+            transition: all 0.3s ease-in-out;
+        }
+        .framework-box {
+            border: 2px solid #e2e8f0; /* slate-200 */
+            transition: all 0.3s ease;
+        }
+        .framework-box:hover {
+            border-color: #0284c7; /* sky-600 */
+            background-color: #f0f9ff; /* sky-50 */
+        }
+        .framework-arrow {
+            position: relative;
+            width: 100%;
+            height: 2px;
+            background-color: #94a3b8; /* slate-400 */
+        }
+        .framework-arrow::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: -4px;
+            border-style: solid;
+            border-width: 5px 0 5px 8px;
+            border-color: transparent transparent transparent #94a3b8;
         }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="antialiased">
 
     <!-- Header & Navigation -->
-    <header id="header" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
-        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
-            <h1 class="text-xl md:text-2xl font-bold text-slate-800">CPU編譯器優化剖析</h1>
+    <header class="bg-white/90 backdrop-blur-lg sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-800">微架構效率建模瀏覽器</h1>
             <div class="hidden md:flex space-x-8">
-                <a href="#goals" class="nav-link font-medium text-slate-600 pb-1">優化目標</a>
-                <a href="#kpis" class="nav-link font-medium text-slate-600 pb-1">關鍵指標</a>
-                <a href="#benchmarks" class="nav-link font-medium text-slate-600 pb-1">基準測試</a>
-                <a href="#practices" class="nav-link font-medium text-slate-600 pb-1">最佳實踐</a>
+                <a href="#challenge" class="nav-link font-medium text-slate-600 pb-1">核心挑戰</a>
+                <a href="#toolbox" class="nav-link font-medium text-slate-600 pb-1">分析工具箱</a>
+                <a href="#framework" class="nav-link font-medium text-slate-600 pb-1">整合框架</a>
+                <a href="#actions" class="nav-link font-medium text-slate-600 pb-1">優化策略</a>
             </div>
-            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-slate-600 hover:bg-slate-100">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
+             <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-slate-600 hover:bg-slate-100">
+                <span class="block w-6 h-0.5 bg-current mb-1.5"></span>
+                <span class="block w-6 h-0.5 bg-current mb-1.5"></span>
+                <span class="block w-4 h-0.5 bg-current"></span>
             </button>
         </nav>
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden">
-            <a href="#goals" class="block text-center py-2 px-4 text-sm text-slate-600 hover:bg-teal-50">優化目標</a>
-            <a href="#kpis" class="block text-center py-2 px-4 text-sm text-slate-600 hover:bg-teal-50">關鍵指標</a>
-            <a href="#benchmarks" class="block text-center py-2 px-4 text-sm text-slate-600 hover:bg-teal-50">基準測試</a>
-            <a href="#practices" class="block text-center py-2 px-4 text-sm text-slate-600 hover:bg-teal-50">最佳實踐</a>
+        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200">
+            <a href="#challenge" class="mobile-nav-link block text-center py-2 px-4 text-sm text-slate-700 hover:bg-sky-50">核心挑戰</a>
+            <a href="#toolbox" class="mobile-nav-link block text-center py-2 px-4 text-sm text-slate-700 hover:bg-sky-50">分析工具箱</a>
+            <a href="#framework" class="mobile-nav-link block text-center py-2 px-4 text-sm text-slate-700 hover:bg-sky-50">整合框架</a>
+            <a href="#actions" class="mobile-nav-link block text-center py-2 px-4 text-sm text-slate-700 hover:bg-sky-50">優化策略</a>
         </div>
     </header>
 
-    <main class="container mx-auto px-6 py-8 md:py-12">
+    <main class="container mx-auto px-6 py-8 md:py-16">
 
-        <!-- Section 1: Optimization Goals -->
-        <section id="goals" class="my-12 md:my-16 scroll-mt-20">
-            <h2 class="text-3xl font-bold text-center text-slate-800 mb-4">優化目標之間的權衡</h2>
-            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">
-                編譯器優化旨在提升程式效能，但不同目標（執行速度、記憶體用量、程式碼大小、功耗）之間常存在衝突。例如，追求極致速度的優化（如函式內聯）可能會增加最終程式碼的體積。此互動圖表展示了不同優化等級如何影響這些核心目標，揭示了其內在的權衡關係。
+        <!-- Section 1: The Core Challenge -->
+        <section id="challenge" class="scroll-mt-24 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4">解開硬體的「黑箱」</h2>
+            <p class="max-w-3xl mx-auto text-lg text-slate-600 leading-relaxed">
+                現代CPU的內部運作極其複雜，對於編譯器而言，其優化決策如何與硬體真實互動往往像一個「黑箱」。傳統分析工具提供的資訊有限，無法精確解釋效能變化的根本原因。本工具旨在揭示超越傳統方法的先進模型，為編譯器提供清晰、可操作的微架構洞察，從而實現真正高效的程式碼優化。
             </p>
-            <div class="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
-                <div class="w-full lg:w-1/2">
-                    <div class="chart-container">
-                        <canvas id="optimizationGoalsChart"></canvas>
+        </section>
+
+        <!-- Section 2: The Toolbox -->
+        <section id="toolbox" class="my-20 md:my-28 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center text-slate-800 mb-4">效能分析工具箱</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">
+                評估編譯器優化效果，需要了解各種分析工具的優勢與局限。從傳統的動態分析器到先進的週期精確模擬器，每種工具都在「準確性」、「速度」和「細節粒度」之間進行權衡。這裡我們對比不同工具的特性，幫助您選擇適合的分析方法。
+            </p>
+            <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
+                <!-- Traditional Tools Column -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-semibold text-center text-slate-700 mb-6">傳統工具：快速診斷</h3>
+                    <div class="space-y-4">
+                        <div class="tool-card border border-slate-200 p-4 rounded-lg" data-tool="perf">
+                            <h4 class="font-bold text-sky-700">動態分析器 (如 `perf`, VTune)</h4>
+                            <p class="text-sm text-slate-500 mt-1">低開銷採樣，識別程式熱點。</p>
+                            <div class="tool-details hidden mt-3 text-sm space-y-2">
+                                <p><strong>優勢：</strong>開銷低，適用於生產環境，可快速找到效能瓶頸區域。</p>
+                                <p><strong>局限：</strong>採樣不精確，難以歸因具體的微架構事件，無法解釋「為何」變慢。</p>
+                            </div>
+                        </div>
+                        <div class="tool-card border border-slate-200 p-4 rounded-lg" data-tool="callgrind">
+                            <h4 class="font-bold text-sky-700">儀器分析器 (如 Callgrind)</h4>
+                            <p class="text-sm text-slate-500 mt-1">精確的指令計數與函式呼叫追蹤。</p>
+                             <div class="tool-details hidden mt-3 text-sm space-y-2">
+                                <p><strong>優勢：</strong>提供極高細節，可模擬快取行為。</p>
+                                <p><strong>局限：</strong>極高的執行開銷（可能慢10-100倍），會改變程式行為，不適用於大型應用。</p>
+                            </div>
+                        </div>
+                        <div class="tool-card border border-slate-200 p-4 rounded-lg" data-tool="llvm-mca">
+                            <h4 class="font-bold text-sky-700">靜態分析器 (如 `llvm-mca`)</h4>
+                            <p class="text-sm text-slate-500 mt-1">分析程式碼片段在理想條件下的吞吐量。</p>
+                             <div class="tool-details hidden mt-3 text-sm space-y-2">
+                                <p><strong>優勢：</strong>速度極快，能估算IPC與資源壓力。</p>
+                                <p><strong>局限：</strong>忽略動態行為（如快取失誤、分支預測錯誤），僅適用於小程式碼片段。</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="w-full lg:w-1/3 flex flex-col items-center space-y-4">
-                    <h3 class="text-xl font-semibold text-slate-700">選擇優化等級</h3>
-                    <div id="optimization-buttons" class="flex flex-wrap justify-center gap-3">
-                        <button data-level="O0" class="opt-btn bg-slate-200 text-slate-700 font-semibold py-2 px-5 rounded-full transition-transform transform hover:scale-105 shadow-sm">無優化 (-O0)</button>
-                        <button data-level="O2" class="opt-btn bg-slate-200 text-slate-700 font-semibold py-2 px-5 rounded-full transition-transform transform hover:scale-105 shadow-sm">標準優化 (-O2)</button>
-                        <button data-level="O3" class="opt-btn bg-slate-200 text-slate-700 font-semibold py-2 px-5 rounded-full transition-transform transform hover:scale-105 shadow-sm">積極優化 (-O3)</button>
-                        <button data-level="Os" class="opt-btn bg-slate-200 text-slate-700 font-semibold py-2 px-5 rounded-full transition-transform transform hover:scale-105 shadow-sm">大小優化 (-Os)</button>
+
+                <!-- Advanced Tools Column -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-semibold text-center text-slate-700 mb-6">先進模型：深度洞察</h3>
+                     <div class="space-y-4">
+                        <div class="tool-card border border-slate-200 p-4 rounded-lg" data-tool="gem5">
+                            <h4 class="font-bold text-green-700">週期精確模擬器 (如 gem5)</h4>
+                            <p class="text-sm text-slate-500 mt-1">完整模擬硬體行為，提供最精確的細節。</p>
+                             <div class="tool-details hidden mt-3 text-sm space-y-2">
+                                <p><strong>優勢：</strong>極高準確性，可探索不同硬體設計，提供全系統視圖。</p>
+                                <p><strong>局限：</strong>速度極慢（比原生慢數千倍），設定複雜，計算成本高。</p>
+                            </div>
+                        </div>
+                        <div class="tool-card border border-slate-200 p-4 rounded-lg" data-tool="ml">
+                            <h4 class="font-bold text-green-700">機器學習模型 (如 Reasoning Compiler)</h4>
+                            <p class="text-sm text-slate-500 mt-1">學習並預測優化效果，自動搜尋最佳策略。</p>
+                             <div class="tool-details hidden mt-3 text-sm space-y-2">
+                                <p><strong>優勢：</strong>自動化探索龐大優化空間，發現非直觀策略，預測效能。</p>
+                                <p><strong>局限：</strong>需要大量訓練資料，模型通用性是挑戰，結果的可解釋性較低。</p>
+                            </div>
+                        </div>
+                        <div class="tool-card border border-slate-200 p-4 rounded-lg" data-tool="pmu">
+                            <h4 class="font-bold text-green-700">硬體效能計數器 (PMU)</h4>
+                            <p class="text-sm text-slate-500 mt-1">利用晶片內硬體，低開銷收集真實世界數據。</p>
+                             <div class="tool-details hidden mt-3 text-sm space-y-2">
+                                <p><strong>優勢：</strong>真實世界數據，開銷極低，可用於持續的回饋導向優化 (FDO)。</p>
+                                <p><strong>局限：</strong>可計數的事件有限，數據可能存在不精確性，有安全隱患。</p>
+                            </div>
+                        </div>
                     </div>
-                    <p id="optimization-desc" class="text-center text-slate-500 mt-4 h-24 p-2 bg-slate-100 rounded-lg">
-                        點擊按鈕查看不同編譯器優化等級對各項效能指標的典型影響。
-                    </p>
                 </div>
             </div>
         </section>
 
-        <!-- Section 2: Key Performance Indicators -->
-        <section id="kpis" class="my-16 md:my-24 scroll-mt-20">
-            <h2 class="text-3xl font-bold text-center text-slate-800 mb-4">評估的關鍵效能指標 (KPIs)</h2>
+
+        <!-- Section 3: The Integrated Framework -->
+        <section id="framework" class="my-20 md:my-28 scroll-mt-24">
+             <h2 class="text-3xl font-bold text-center text-slate-800 mb-4">通往精確優化的整合框架</h2>
             <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">
-                要全面評估編譯器優化的效果，不能只看總執行時間。我們必須深入探討一系列微觀指標，它們共同揭示了效能變化的根本原因。以下是幾個最重要的KPI，它們從不同角度衡量程式的效率。
+                單一工具無法解決所有問題。一個理想的解決方案是建立一個多層次的整合回饋迴圈。此框架結合不同工具的優勢：利用靜態分析快速評估，動態分析捕捉真實世界行為，詳細模擬進行深度驗證，並由機器學習模型驅動預測與自動化優化，最終為編譯器提供全面且可操作的指導。
             </p>
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
-                    <h3 class="font-bold text-lg text-teal-700 mb-2">執行效率</h3>
-                    <p class="text-slate-600 text-sm">執行時間、吞吐量和IPC（每週期指令數）是衡量CPU處理效率的核心。更低的執行時間和更高的IPC意味著CPU在單位時間內完成了更多工作，是速度優化的直接體現。</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
-                    <h3 class="font-bold text-lg text-teal-700 mb-2">記憶體階層</h3>
-                    <p class="text-slate-600 text-sm">快取命中/失誤率直接影響效能。一次快取失誤會導致CPU停頓，等待從較慢的主記憶體中讀取資料。優化編譯器會嘗試重排程式碼以提高資料局部性，從而提升快取命中率。</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
-                    <h3 class="font-bold text-lg text-teal-700 mb-2">程式碼大小</h3>
-                    <p class="text-slate-600 text-sm">二進位檔案的佔用空間對於嵌入式系統和應用程式啟動時間至關重要。消除死程式碼和冗餘計算可以縮小程式碼，但有時會與速度優化產生衝突。</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
-                    <h3 class="font-bold text-lg text-teal-700 mb-2">功耗效率</h3>
-                    <p class="text-slate-600 text-sm">功耗與執行速度密切相關。程式碼執行得越快，CPU就能越快進入低功耗閒置狀態，從而降低總體能源消耗。高效的指令序列和更少的記憶體存取都有助於節能。</p>
+            <div class="max-w-4xl mx-auto p-8 bg-white rounded-xl shadow-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                    <!-- Inputs -->
+                    <div class="space-y-4">
+                        <div class="framework-box p-4 rounded-lg text-center">
+                            <h4 class="font-semibold text-slate-700">靜態分析</h4>
+                            <p class="text-sm text-slate-500">(`llvm-mca`)</p>
+                        </div>
+                         <div class="framework-box p-4 rounded-lg text-center">
+                            <h4 class="font-semibold text-slate-700">動態分析</h4>
+                            <p class="text-sm text-slate-500">(PMU / `perf`)</p>
+                        </div>
+                         <div class="framework-box p-4 rounded-lg text-center">
+                            <h4 class="font-semibold text-slate-700">模擬分析</h4>
+                            <p class="text-sm text-slate-500">(gem5)</p>
+                        </div>
+                    </div>
+                    <!-- Arrow -->
+                    <div class="flex items-center justify-center">
+                        <div class="framework-arrow"></div>
+                    </div>
+                    <!-- Core -->
+                    <div class="space-y-4">
+                       <div class="framework-box p-6 rounded-lg text-center border-sky-500 border-2">
+                            <h4 class="font-bold text-2xl text-sky-700">編譯器優化引擎</h4>
+                            <p class="text-sm text-slate-500 mt-2">ML模型驅動決策</p>
+                        </div>
+                        <div class="text-center transform rotate-180">
+                             <div class="framework-arrow"></div>
+                        </div>
+                         <p class="text-center text-slate-600 font-medium">回饋迴圈</p>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Section 3: Benchmark Suites -->
-        <section id="benchmarks" class="my-16 md:my-24 scroll-mt-20">
-            <h2 class="text-3xl font-bold text-center text-slate-800 mb-4">宏觀效能評估：基準測試套件</h2>
+        <!-- Section 4: From Metrics to Actions -->
+        <section id="actions" class="my-20 md:my-28 scroll-mt-24">
+             <h2 class="text-3xl font-bold text-center text-slate-800 mb-4">從指標到行動：優化策略指南</h2>
             <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">
-                基準測試套件提供了一系列標準化的工作負載，用於在宏觀層面評估和比較不同編譯器和硬體的效能。然而，選擇合適的基準測試並理解其設計哲學至關重要，因為有些基準測試可能容易被「針對性優化」。
+                最關鍵的一步是將分析工具提供的數據轉化為具體的編譯器優化策略。當模型告訴您存在何種瓶頸時，您該如何應對？點擊左側的微架構指標，查看右側對應的建議優化策略和解釋。
             </p>
-            <div class="flex justify-center flex-wrap gap-2 mb-8">
-                <span class="tag bg-slate-200 text-slate-700 py-1 px-3 rounded-full text-sm font-medium active" data-filter="all">全部</span>
-                <span class="tag bg-slate-200 text-slate-700 py-1 px-3 rounded-full text-sm font-medium" data-filter="industry">業界標準</span>
-                <span class="tag bg-slate-200 text-slate-700 py-1 px-3 rounded-full text-sm font-medium" data-filter="embedded">嵌入式</span>
-                <span class="tag bg-slate-200 text-slate-700 py-1 px-3 rounded-full text-sm font-medium" data-filter="academic">學術/開源</span>
-                <span class="tag bg-slate-200 text-slate-700 py-1 px-3 rounded-full text-sm font-medium" data-filter="legacy">傳統</span>
-            </div>
-            <div id="benchmark-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Benchmark cards will be dynamically inserted here -->
-            </div>
-        </section>
-
-        <!-- Section 4: Best Practices -->
-        <section id="practices" class="my-16 md:my-24 scroll-mt-20">
-            <h2 class="text-3xl font-bold text-center text-slate-800 mb-4">評估的最佳實踐</h2>
-             <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">
-                為了得到可靠且可重複的評估結果，遵循嚴謹的方法論至關重要。效能調優有時被視為一門藝術，但系統性的步驟是確保科學性的基礎。以下是進行編譯器優化評估時應遵循的關鍵步驟。
-            </p>
-            <div class="max-w-2xl mx-auto space-y-4">
-                <div class="bg-white p-5 rounded-lg shadow-sm flex items-start space-x-4 border-l-4 border-teal-500">
-                    <div class="flex-shrink-0 bg-teal-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold">1</div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">建立基準線</h3>
-                        <p class="text-slate-600 text-sm">在不進行任何優化的情況下（例如使用 `-O0`）編譯並運行程式碼，測量其效能作為比較的起點。</p>
+            <div class="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+                <!-- Metrics Column -->
+                <div class="w-full md:w-1/3">
+                    <h3 class="font-semibold text-lg mb-4 text-slate-700">選擇效能瓶頸指標</h3>
+                    <div id="metrics-list" class="space-y-2">
+                        <!-- Metric items will be inserted here -->
                     </div>
                 </div>
-                 <div class="bg-white p-5 rounded-lg shadow-sm flex items-start space-x-4 border-l-4 border-teal-500">
-                    <div class="flex-shrink-0 bg-teal-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold">2</div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">迭代優化</h3>
-                        <p class="text-slate-600 text-sm">從標準優化級別（`-O2`, `-O3`）開始，逐步嘗試更具體的優化旗標，並在每次更改後重新測量效能。</p>
-                    </div>
-                </div>
-                 <div class="bg-white p-5 rounded-lg shadow-sm flex items-start space-x-4 border-l-4 border-teal-500">
-                    <div class="flex-shrink-0 bg-teal-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold">3</div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">結果驗證</h3>
-                        <p class="text-slate-600 text-sm">務必確認優化後的程式碼產生的結果與基準線的結果一致或在數值上可接受，以防止優化引入錯誤。</p>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-lg shadow-sm flex items-start space-x-4 border-l-4 border-teal-500">
-                    <div class="flex-shrink-0 bg-teal-500 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold">4</div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">報告透明度</h3>
-                        <p class="text-slate-600 text-sm">發布結果時，必須清楚註明所用的編譯器版本、所有優化旗標和硬體環境，以確保結果的可重現性和可比性。</p>
-                    </div>
+                <!-- Strategies Column -->
+                <div class="w-full md:w-2/3">
+                     <h3 class="font-semibold text-lg mb-4 text-slate-700">建議的編譯器優化策略</h3>
+                     <div id="strategy-explanation" class="p-4 bg-slate-50 rounded-lg mb-4 min-h-[100px] text-slate-600">
+                        <p>請從左側選擇一個指標以查看相關策略。</p>
+                     </div>
+                     <div id="strategies-list" class="space-y-2">
+                        <!-- Strategy items will be inserted here -->
+                     </div>
                 </div>
             </div>
         </section>
 
     </main>
 
-    <footer class="bg-slate-800 text-slate-400 py-6">
+    <footer class="bg-slate-800 text-slate-400 py-6 mt-16">
         <div class="container mx-auto px-6 text-center text-sm">
-            <p>&copy; 2025 CPU編譯器優化分析工具. 資訊基於系統性調查報告生成。</p>
+            <p>&copy; 2025 互動式微架構效率建模瀏覽器. 內容基於學術報告生成。</p>
         </div>
     </footer>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Mobile Menu Toggle
+    // Mobile Menu
     const mobileMenuButton = document.getElementById('mobile-menu-button');
     const mobileMenu = document.getElementById('mobile-menu');
     mobileMenuButton.addEventListener('click', () => {
         mobileMenu.classList.toggle('hidden');
     });
+    document.querySelectorAll('.mobile-nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            mobileMenu.classList.add('hidden');
+        });
+    });
 
     // Navigation scroll spy
     const sections = document.querySelectorAll('section');
     const navLinks = document.querySelectorAll('.nav-link');
-
     window.addEventListener('scroll', () => {
         let current = '';
         sections.forEach(section => {
             const sectionTop = section.offsetTop;
-            if (pageYOffset >= sectionTop - 100) {
+            if (pageYOffset >= sectionTop - 120) {
                 current = section.getAttribute('id');
             }
         });
 
         navLinks.forEach(link => {
             link.classList.remove('active');
-            if (link.getAttribute('href').includes(current)) {
+            if (link.getAttribute('href')?.includes(current)) {
                 link.classList.add('active');
             }
         });
     });
 
-    // Section 1: Optimization Goals Chart
-    const optimizationData = {
-        O0: {
-            values: [20, 70, 80, 75],
-            description: "不進行任何優化。編譯速度最快，但程式執行速度慢，程式碼體積較大。主要用於偵錯。"
-        },
-        O2: {
-            values: [80, 60, 55, 65],
-            description: "標準優化等級。在不顯著增加編譯時間和程式碼大小的前提下，大幅提升執行速度。是發布版本的常用選擇。"
-        },
-        O3: {
-            values: [95, 45, 40, 50],
-            description: "積極優化等級。追求極致的執行速度，可能會使用函式內聯等技術，導致程式碼體積顯著增加。"
-        },
-        Os: {
-            values: [65, 95, 90, 80],
-            description: "大小優化等級。優先考慮縮減程式碼體積，會禁用那些可能增加大小的速度優化選項。適用於嵌入式系統。"
-        }
-    };
-
-    const ctx = document.getElementById('optimizationGoalsChart').getContext('2d');
-    const goalsChart = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['執行速度', '程式碼大小', '記憶體用量', '功耗效率'],
-            datasets: [{
-                label: '優化效果',
-                data: optimizationData.O2.values,
-                backgroundColor: 'rgba(13, 148, 136, 0.2)',
-                borderColor: 'rgb(13, 148, 136)',
-                pointBackgroundColor: 'rgb(13, 148, 136)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgb(13, 148, 136)'
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            scales: {
-                r: {
-                    angleLines: {
-                        color: 'rgba(0, 0, 0, 0.1)'
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.1)'
-                    },
-                    pointLabels: {
-                        font: {
-                            size: 14,
-                            family: "'Noto Sans TC', sans-serif"
-                        },
-                        color: '#334155' // slate-700
-                    },
-                    ticks: {
-                        backdropColor: 'transparent',
-                        color: '#64748b', // slate-500
-                        stepSize: 25,
-                        display: false
-                    },
-                    min: 0,
-                    max: 100
+    // Tool Cards Interaction
+    const toolCards = document.querySelectorAll('.tool-card');
+    toolCards.forEach(card => {
+        card.addEventListener('click', () => {
+            // Close other open cards
+            toolCards.forEach(otherCard => {
+                if (otherCard !== card) {
+                    otherCard.querySelector('.tool-details').classList.add('hidden');
                 }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.r !== null) {
-                                label += `評分 ${context.parsed.r}`;
-                            }
-                            return label;
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    const optButtons = document.querySelectorAll('.opt-btn');
-    const optDesc = document.getElementById('optimization-desc');
-    const optButtonsContainer = document.getElementById('optimization-buttons');
-
-    function updateChart(level) {
-        goalsChart.data.datasets[0].data = optimizationData[level].values;
-        goalsChart.update();
-        optDesc.textContent = optimizationData[level].description;
-        
-        optButtons.forEach(btn => {
-            btn.classList.remove('bg-teal-600', 'text-white', 'scale-110');
-            btn.classList.add('bg-slate-200', 'text-slate-700');
+            });
+            // Toggle current card
+            card.querySelector('.tool-details').classList.toggle('hidden');
         });
-        const activeButton = optButtonsContainer.querySelector(`[data-level=${level}]`);
-        activeButton.classList.add('bg-teal-600', 'text-white', 'scale-110');
-        activeButton.classList.remove('bg-slate-200', 'text-slate-700');
-    }
-
-    optButtonsContainer.addEventListener('click', (e) => {
-        if (e.target.matches('.opt-btn')) {
-            const level = e.target.dataset.level;
-            updateChart(level);
-        }
     });
-    
-    updateChart('O2');
 
-    // Section 3: Benchmarks
-    const benchmarkData = [
-        { name: 'SPEC CPU', tags: ['industry'], desc: '業界公認的黃金標準，用於評估高階伺服器和工作站的運算效能。', caveat: '爭議：曾因編譯器被指控針對其程式碼模式進行「不公平優化」而使結果失效。' },
-        { name: 'CoreMark', tags: ['industry', 'embedded'], desc: '由EEMBC開發，專為嵌入式CPU設計，其「運行時驅動」計算可有效抵抗編譯時的過度優化。', caveat: '優點：設計嚴謹，報告規則透明，可比性高。' },
-        { name: 'PolyBench', tags: ['academic'], desc: '學術界常用於評估迴圈轉換和自動平行化等編譯器優化技術的有效性。', caveat: '挑戰：對程式碼的微小變動（如靜態與動態陣列）非常敏感，可能影響優化效果。' },
-        { name: 'OpenBenchmarking.org', tags: ['academic'], desc: '一個龐大的開源基準測試儲存庫，透過Phoronix Test Suite執行，涵蓋多樣化的工作負載。', caveat: '優點：測試種類繁多，涵蓋範圍廣。' },
-        { name: 'Dhrystone', tags: ['legacy'], desc: '一個歷史悠久的整數運算基準測試，曾非常流行。', caveat: '批評：現被認為更像「編譯器基準測試」，因其大部分工作可被現代編譯器「優化掉」，導致分數虛高。' },
-        { name: 'Whetstone', tags: ['legacy'], desc: '早期的浮點效能合成基準測試，用於評估科學計算能力。', caveat: '批評：與Dhrystone類似，其合成特性可能無法完全代表現代複雜應用程式的工作負載。' }
+    // Metrics and Strategies Interaction
+    const metricsData = [
+        { 
+            id: 'ipc', 
+            name: '低 IPC / 高 CPI', 
+            strategies: ['scheduling', 'loop', 'inlining', 'isa'],
+            explanation: '低 IPC (每週期指令數) 表示CPU效率低下，指令無法有效填滿管線。這通常由資料相依性、資源衝突或控制流問題引起。'
+        },
+        { 
+            id: 'cache', 
+            name: '高快取失誤率', 
+            strategies: ['tiling', 'layout', 'prefetch'],
+            explanation: '高快取失誤率表示程式頻繁存取主記憶體，導致嚴重延遲。這是最常見的效能瓶頸之一，主因為資料局部性差。'
+        },
+        { 
+            id: 'pipeline', 
+            name: '管線停滯', 
+            strategies: ['scheduling', 'registers', 'branch'],
+            explanation: '管線停滯意味著指令流中斷。前端停滯與取指令/解碼有關，後端停滯與執行單元或記憶體操作有關。'
+        },
+        { 
+            id: 'branch', 
+            name: '高分支預測錯誤率', 
+            strategies: ['branch', 'pgo'],
+            explanation: 'CPU猜錯了分支方向，導致整個管線被清空和重新填充，浪費大量週期。通常發生在有複雜條件判斷的迴圈中。'
+        },
+        {
+            id: 'pressure',
+            name: '高功能單元/暫存器壓力',
+            strategies: ['scheduling', 'registers', 'simd', 'inlining'],
+            explanation: '特定執行單元(如ALU, FPU)或暫存器成為瓶頸，導致指令排隊等待。暫存器壓力大則會引發代價高昂的溢出。'
+        },
+        {
+            id: 'size',
+            name: '程式碼體積過大',
+            strategies: ['deadcode', 'inlining_balance', 'level'],
+            explanation: '過大的程式碼會降低指令快取(I-Cache)的命中率，並增加啟動時間，在嵌入式系統中尤其關鍵。'
+        }
     ];
 
-    const benchmarkGrid = document.getElementById('benchmark-grid');
-    const filterTags = document.querySelectorAll('.tag');
+    const strategiesData = {
+        scheduling: { name: '指令排程' },
+        loop: { name: '迴圈優化' },
+        inlining: { name: '函式內聯' },
+        isa: { name: '利用特定ISA擴展' },
+        tiling: { name: '迴圈分塊/平鋪' },
+        layout: { name: '資料/程式碼佈局優化' },
+        prefetch: { name: '軟體預取' },
+        registers: { name: '暫存器分配優化' },
+        branch: { name: '分支優化 (if-conversion)' },
+        pgo: { name: '設定檔引導優化 (PGO)' },
+        simd: { name: '向量化 (SIMD)' },
+        deadcode: { name: '死程式碼/常數摺疊' },
+        inlining_balance: { name: '平衡函式內聯' },
+        level: { name: '選擇優化等級 (-Os)' }
+    };
 
-    function renderBenchmarks(filter = 'all') {
-        benchmarkGrid.innerHTML = '';
-        const filteredData = filter === 'all' 
-            ? benchmarkData 
-            : benchmarkData.filter(b => b.tags.includes(filter));
+    const metricsList = document.getElementById('metrics-list');
+    const strategiesList = document.getElementById('strategies-list');
+    const explanationDiv = document.getElementById('strategy-explanation');
 
-        filteredData.forEach(b => {
-            const card = document.createElement('div');
-            card.className = 'benchmark-card bg-white p-6 rounded-xl shadow-lg border border-slate-100 flex flex-col justify-between';
-            card.innerHTML = `
-                <div>
-                    <h3 class="font-bold text-xl text-slate-800 mb-2">${b.name}</h3>
-                    <div class="mb-3">
-                        ${b.tags.map(t => `<span class="inline-block bg-teal-100 text-teal-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${t}</span>`).join('')}
-                    </div>
-                    <p class="text-slate-600 mb-4">${b.desc}</p>
-                </div>
-                <div class="bg-slate-100 p-3 rounded-md mt-auto">
-                    <p class="text-sm text-slate-700"><span class="font-semibold">${b.caveat.split('：')[0]}：</span>${b.caveat.split('：')[1]}</p>
-                </div>
-            `;
-            benchmarkGrid.appendChild(card);
-        });
-    }
-
-    filterTags.forEach(tag => {
-        tag.addEventListener('click', () => {
-            filterTags.forEach(t => t.classList.remove('active'));
-            tag.classList.add('active');
-            renderBenchmarks(tag.dataset.filter);
-        });
+    // Populate lists
+    metricsData.forEach(metric => {
+        const div = document.createElement('div');
+        div.className = 'metric-item p-3 rounded-md cursor-pointer border-l-4 border-transparent hover:bg-slate-100 transition';
+        div.textContent = metric.name;
+        div.dataset.metricId = metric.id;
+        metricsList.appendChild(div);
     });
 
-    renderBenchmarks();
+    Object.keys(strategiesData).forEach(key => {
+        const div = document.createElement('div');
+        div.className = 'strategy-item p-3 bg-slate-100 rounded-md transition';
+        div.textContent = strategiesData[key].name;
+        div.dataset.strategyId = key;
+        strategiesList.appendChild(div);
+    });
+
+    // Add click listener to metrics list
+    metricsList.addEventListener('click', e => {
+        if (e.target.classList.contains('metric-item')) {
+            const selectedMetricId = e.target.dataset.metricId;
+            const selectedMetric = metricsData.find(m => m.id === selectedMetricId);
+
+            // Update active state for metrics
+            document.querySelectorAll('.metric-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            e.target.classList.add('active');
+
+            // Update explanation
+            explanationDiv.innerHTML = `<p>${selectedMetric.explanation}</p>`;
+
+            // Highlight strategies
+            document.querySelectorAll('.strategy-item').forEach(item => {
+                if (selectedMetric.strategies.includes(item.dataset.strategyId)) {
+                    item.classList.add('highlight');
+                } else {
+                    item.classList.remove('highlight');
+                }
+            });
+        }
+    });
 });
 </script>
 
